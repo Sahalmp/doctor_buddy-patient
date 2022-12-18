@@ -27,8 +27,9 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  about: ^2.1.1
   avatar_glow: ^2.0.2
-  awesome_snackbar_content: ^0.0.5
+  awesome_snackbar_content: 0.0.5
   cloud_firestore: ^3.1.18
   csc_picker: ^0.2.6
   cupertino_icons: ^1.0.2
@@ -36,13 +37,19 @@ dependencies:
   date_picker_timeline: ^1.2.3
   firebase_auth: ^3.3.20
   firebase_core: ^1.18.0
+  firebase_messaging: ^12.0.1
+  firebase_storage: ^10.3.4
   flutter:
     sdk: flutter
   flutter_bloc: ^8.0.1
+  flutter_local_notifications: ^9.7.0
   freezed_annotation: ^2.0.3
+  geocoding: ^2.0.4
+  geolocator: ^9.0.1
   get_it: ^7.2.0
   google_fonts: ^3.0.1
   grouped_list: ^5.1.2
+  http: ^0.13.5
   image_picker: ^0.8.5+3
   injectable: ^1.5.3
   intl: ^0.17.0

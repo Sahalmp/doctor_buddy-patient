@@ -1,25 +1,35 @@
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:doctorbuddy/presentation/Screens/MoreScreen/Appointments/bookappointments.dart';
+import 'package:doctorbuddy/presentation/Screens/MoreScreen/Appointments/loadingpage.dart';
 import 'package:doctorbuddy/presentation/Screens/MoreScreen/Appointments/successscreen.dart';
 import 'package:doctorbuddy/presentation/widgets/navigation/nextpage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 
+import '../../../../application/details/details_bloc.dart';
 import '../../../../domain/appointment/appointment.dart';
+import '../../../../infastructure/datafetch/notification.dart';
 
 class Paymentwidget extends StatefulWidget {
   const Paymentwidget({
     Key? key,
+    required this.wallet,
+    required this.wmoney,
+    required this.appfee,
     required this.reason,
     required this.doc,
     required this.timing,
     required DateTime selectedValue,
   })  : _selectedValue = selectedValue,
         super(key: key);
-  final String timing;
+  final String timing, appfee;
   final String reason;
+  final bool wallet;
+  final int wmoney;
   final DateTime _selectedValue;
   final doc;
 
@@ -48,11 +58,11 @@ class _PaymentwidgetState extends State<Paymentwidget> {
     razorpay?.clear();
   }
 
-  void openCheckout() {
+  void openCheckout(amount) {
     var options = {
       "key": "rzp_test_BUioCj49iOdN9h",
       'timeout': 60 * 5,
-      "amount": num.parse("350") * 100,
+      "amount": num.parse(amount) * 100,
       "name": "DoctorBuddy",
       "description": "Appointment ",
       "prefill": {"contact": "2323232323", "email": "test@razorpay.com"},
@@ -67,6 +77,16 @@ class _PaymentwidgetState extends State<Paymentwidget> {
 
   void handlerPaymentSuccess(PaymentSuccessResponse response) async {
     print("Payment success");
+
+    await addtoFirebase(null, response);
+  }
+
+  Future<void> addtoFirebase(amount, response) async {
+    nextPage(
+        context: context,
+        page: const LoadingPage(
+          text: 'Payment Processing',
+        ));
     FirebaseFirestore firebaseFirestore = FirebaseFirestore.instance;
     QuerySnapshot<Map<String, dynamic>> result = await firebaseFirestore
         .collection('users')
@@ -110,18 +130,54 @@ class _PaymentwidgetState extends State<Paymentwidget> {
         .collection('appointments')
         .doc(docvalue)
         .set(appointmentModel.toMap());
-    ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Successfully Booked an Appointment")));
-    nextPage(context: context, page: SucceessSrcreen());
+    if (widget.wallet) {
+      if (widget.wmoney >= num.parse(widget.appfee)) {
+        await FirebaseFirestore.instance
+            .collection('pusers')
+            .doc(FirebaseAuth.instance.currentUser!.uid)
+            .update({'Wallet': widget.wmoney - num.parse(widget.appfee)});
+      } else if (widget.wmoney < num.parse(widget.appfee)) {
+        await FirebaseFirestore.instance
+            .collection('pusers')
+            .doc(FirebaseAuth.instance.currentUser!.uid)
+            .update({'Wallet': num.parse(widget.appfee) - widget.wmoney});
+      }
+    }
+    NotificationService.sendNotification(
+        title:
+            'Appointment @$hospitalvalue on ${DateFormat('dd MMM yyyy ,EEE').format(widget._selectedValue)}',
+        description: 'Dr.${widget.doc['name']}!!! You have an Appointment',
+        token: widget.doc['token']);
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.doc['uid'])
+        .collection('notifications')
+        .add({
+      'title':
+          'Appointment @$hospitalvalue on ${DateFormat('dd MMM yyyy ,EEE').format(widget._selectedValue)}',
+      'description': 'Dr.${widget.doc['name']}!!! You have an Appointment',
+      'read': false
+    });
+    nextPage(
+        context: context,
+        page: SucceessSrcreen(
+          payment: response,
+          fee: widget.appfee,
+          date: DateFormat('dd MMM yyyy ,EEE').format(widget._selectedValue),
+          token: appointmentModel.token!,
+          timing: widget.timing,
+          data: widget.doc,
+          hospitalvalue: hospitalvalue,
+        ));
   }
 
-  void handlerErrorFailure() {
+  void handlerErrorFailure(PaymentFailureResponse failureResponse) {
     print("Payment error");
     SnackBar(
         content: AwesomeSnackbarContent(
       contentType: ContentType.failure,
-      message: "Error",
-      title: 'Error',
+      message: "Payment Failed",
+      title: failureResponse.message!,
     ));
   }
 
@@ -131,12 +187,20 @@ class _PaymentwidgetState extends State<Paymentwidget> {
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-        onPressed: () {
-          openCheckout();
+    return BlocBuilder<DetailsBloc, DetailsState>(
+      builder: (context, state) {
+        return ElevatedButton(
+            onPressed: () {
+              num.parse(state.amount) <= 0
+                  ? addtoFirebase(state.amount, null)
+                  : openCheckout(state.amount);
 
-          // nextPage(context: context, page: BookAppointmentWidget());
-        },
-        child: const Text('Pay ₹350'));
+              // nextPage(context: context, page: BookAppointmentWidget());
+            },
+            child: num.parse(state.amount) <= 0
+                ? const Text('Pay')
+                : Text('Pay ₹ ${state.amount}'));
+      },
+    );
   }
 }

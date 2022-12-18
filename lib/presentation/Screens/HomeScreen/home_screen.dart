@@ -9,6 +9,9 @@ import 'package:doctorbuddy/presentation/Screens/HomeScreen/doctors/doctorsdetai
 import 'package:doctorbuddy/presentation/Screens/HomeScreen/doctors/viewalldoctors.dart';
 import 'package:doctorbuddy/presentation/Screens/HomeScreen/hospitals/hospitaldoctors.dart';
 import 'package:doctorbuddy/presentation/Screens/HomeScreen/hospitals/viewallhospitals.dart';
+import 'package:doctorbuddy/presentation/Screens/HomeScreen/location/locationscreen.dart';
+import 'package:doctorbuddy/presentation/Screens/HomeScreen/notificationscreen.dart';
+import 'package:doctorbuddy/presentation/Screens/HomeScreen/search.dart';
 import 'package:doctorbuddy/presentation/Screens/Login/verificationscreen.dart';
 import 'package:doctorbuddy/presentation/Screens/MoreScreen/Appointments/bookappointments.dart';
 import 'package:doctorbuddy/presentation/widgets/navigation/nextpage.dart';
@@ -25,12 +28,13 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Size devSize = MediaQuery.of(context).size;
+    BlocProvider.of<DataBloc>(context).add(Getdata());
 
     return BlocBuilder<DataBloc, DataState>(
       builder: (context, state) {
         return ListView(
           shrinkWrap: true,
-          physics: ClampingScrollPhysics(),
+          physics: const ClampingScrollPhysics(),
           children: [
             Container(
               decoration: const BoxDecoration(
@@ -47,19 +51,25 @@ class HomeScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         TextButton.icon(
-                            onPressed: () {},
+                            onPressed: () {
+                              nextPage(
+                                  context: context, page: LocationScreen());
+                            },
                             icon: const Icon(
                               Icons.location_on_outlined,
                               color: whiteColor,
                             ),
-                            label: const Text(
-                              'Kochi',
+                            label: Text(
+                              "${state.userModel?.place}",
                               style: TextStyle(
                                   decoration: TextDecoration.underline,
                                   color: whiteColor),
                             )),
                         IconButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              nextPage(
+                                  context: context, page: ScreenNotification());
+                            },
                             icon: const Icon(
                               Icons.notifications,
                               color: whiteColor,
@@ -89,19 +99,23 @@ class HomeScreen extends StatelessWidget {
                     SizedBox(
                       height: 35,
                       child: TextField(
-                          decoration: InputDecoration(
-                              suffixIcon: const Icon(Icons.search),
-                              hintText: 'Search Doctors, hospitals',
-                              contentPadding: const EdgeInsets.all(15),
-                              filled: true,
-                              fillColor: Colors.white,
-                              focusColor: Colors.white,
-                              border: OutlineInputBorder(
-                                  borderSide: BorderSide.none,
-                                  borderRadius: BorderRadius.circular(30))),
-                          onChanged: (value) {
-                            // do something
-                          }),
+                        readOnly: true,
+                        decoration: InputDecoration(
+                            suffixIcon: const Icon(Icons.search),
+                            hintText: 'Search Doctors, hospitals',
+                            contentPadding: const EdgeInsets.all(15),
+                            filled: true,
+                            fillColor: Colors.white,
+                            focusColor: Colors.white,
+                            border: OutlineInputBorder(
+                                borderSide: BorderSide.none,
+                                borderRadius: BorderRadius.circular(30))),
+                        onTap: () {
+                          showSearch(
+                              context: context,
+                              delegate: CustomSearchDelegate());
+                        },
+                      ),
                     ),
                     gheight_20,
                   ],
@@ -126,6 +140,7 @@ class HomeScreen extends StatelessWidget {
                           );
                         } else {
                           return GridView.count(
+                              physics: const NeverScrollableScrollPhysics(),
                               shrinkWrap: true,
                               crossAxisCount: 3,
                               crossAxisSpacing: 8,
@@ -148,11 +163,19 @@ class HomeScreen extends StatelessWidget {
                   ),
                   gheight_10,
                   StreamBuilder<QuerySnapshot>(
-                      stream: firestore.collection('users').snapshots(),
+                      stream: firestore
+                          .collection('users')
+                          .where('place', isEqualTo: state.userModel!.place)
+                          .where('hospital')
+                          .where('hospital', isNotEqualTo: []).snapshots(),
                       builder: (context, snapshot) {
                         if (!snapshot.hasData) {
                           return const Center(
                             child: CircularProgressIndicator(),
+                          );
+                        } else if (snapshot.data!.docs.isEmpty) {
+                          return Center(
+                            child: Text('No Doctors'),
                           );
                         } else {
                           return ListView.builder(
@@ -166,7 +189,7 @@ class HomeScreen extends StatelessWidget {
                                 return Column(
                                   children: [
                                     DoctorListTile(
-                                      index: index,
+                                      uid: doc['uid'],
                                       drname:
                                           "Dr. ${doc['name']}".toTitleCase(),
                                       drimgurl: doc['image'],
@@ -186,20 +209,26 @@ class HomeScreen extends StatelessWidget {
                   StreamBuilder<QuerySnapshot>(
                       stream: FirebaseFirestore.instance
                           .collection('hospitals')
+                          .where('place', isEqualTo: state.userModel?.place)
                           .snapshots(),
                       builder: (context, snapshot) {
                         if (!snapshot.hasData) {
-                          return Center(
+                          return const Center(
                             child: CircularProgressIndicator(),
+                          );
+                        }
+                        if (snapshot.data!.docs.isEmpty) {
+                          return const Center(
+                            child: Text('No Hospitals'),
                           );
                         }
                         return ListView.builder(
                             shrinkWrap: true,
-                            physics: ClampingScrollPhysics(),
+                            physics: const ClampingScrollPhysics(),
                             itemCount: snapshot.data!.docs.length.clamp(0, 2),
                             itemBuilder: (context, index) {
                               if (!snapshot.hasData) {
-                                return Center(
+                                return const Center(
                                   child: CircularProgressIndicator(),
                                 );
                               }
@@ -258,12 +287,12 @@ class HospitalListTile extends StatelessWidget {
 
 class DoctorListTile extends StatelessWidget {
   final String drname;
-  final String drimgurl;
+  final String? drimgurl;
   final String category;
-  final int index;
+  final String uid;
   const DoctorListTile(
       {Key? key,
-      required this.index,
+      required this.uid,
       required this.drname,
       required this.drimgurl,
       required this.category})
@@ -281,18 +310,22 @@ class DoctorListTile extends StatelessWidget {
         style: const TextStyle(fontWeight: FontWeight.bold, color: primary),
         overflow: TextOverflow.ellipsis,
       ),
-      leading: CircleAvatar(
-        radius: 30,
-        backgroundColor: background,
-        child: Padding(
-          padding: const EdgeInsets.all(2),
-          child:
-              CircleAvatar(radius: 30, backgroundImage: NetworkImage(drimgurl)),
-        ),
-      ),
+      leading: drimgurl == null
+          ? const CircleAvatar(
+              child: Icon(Icons.person),
+            )
+          : CircleAvatar(
+              radius: 30,
+              backgroundColor: background,
+              child: Padding(
+                padding: const EdgeInsets.all(2),
+                child: CircleAvatar(
+                    radius: 30, backgroundImage: NetworkImage(drimgurl!)),
+              ),
+            ),
       trailing: const Icon(Icons.arrow_forward_ios_sharp),
       onTap: () {
-        nextPage(context: context, page: DoctorDetails(index: index));
+        nextPage(context: context, page: DoctorDetails(uid: uid));
       },
     );
   }

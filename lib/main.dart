@@ -1,26 +1,35 @@
-import 'package:doctorbuddy/presentation/Screens/HomeScreen/home_screen.dart';
 import 'package:doctorbuddy/presentation/Screens/Mainscreen/mainscreen.dart';
-import 'package:doctorbuddy/presentation/Screens/registration/adddetails.dart';
+import 'package:doctorbuddy/presentation/Screens/Splash/SplashScreen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:get_it/get_it.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'application/Home/home_bloc.dart';
 import 'application/datafetch/data_bloc.dart';
 import 'application/details/details_bloc.dart';
 import 'domain/colors.dart';
 import 'domain/di/di.dart';
+import 'infastructure/datafetch/notification.dart';
 import 'presentation/Screens/Login/loginscreen.dart';
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
-  await configureInjection();
   await Firebase.initializeApp();
+  LocalNotificationService.initialize();
+
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  await configureInjection();
 
   runApp(const DoctorApp());
+}
+
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  print('A bg message just showed up :  ${message.messageId}');
 }
 
 class DoctorApp extends StatelessWidget {
@@ -55,7 +64,7 @@ class DoctorApp extends StatelessWidget {
                   style: ButtonStyle(
                 backgroundColor: MaterialStateProperty.all<Color>(primary),
               ))),
-          home: cauth == null ? LoginScreen() : MainScreen(),
+          home: const SplashScreen(),
         ));
   }
 }

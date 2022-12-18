@@ -43,7 +43,7 @@ class ViewAllDoctors extends StatelessWidget {
                           DocumentSnapshot doc = snapshot.data!.docs[index];
 
                           return DoctorListTile(
-                            index: index,
+                            uid: doc['uid'],
                             drname: doc['name'],
                             drimgurl: doc['image'],
                             category: 'Cardiologist',

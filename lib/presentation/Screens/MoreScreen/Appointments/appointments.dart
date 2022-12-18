@@ -43,7 +43,7 @@ class Appointments extends StatelessWidget {
         ),
         body: Padding(
           padding: EdgeInsets.symmetric(horizontal: devSize.width * 0.03),
-          child: ListView(
+          child: Column(
             children: [
               gheight_10,
               StreamBuilder<QuerySnapshot>(
@@ -54,149 +54,209 @@ class Appointments extends StatelessWidget {
                       .orderBy('date')
                       .snapshots(),
                   builder: (context, appointmentsnapshot) {
-                    if (!appointmentsnapshot.hasData) {
+                    if (appointmentsnapshot.connectionState ==
+                        ConnectionState.waiting) {
                       return const Center(
                         child: CircularProgressIndicator(),
                       );
                     }
-                    return ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: appointmentsnapshot.data!.docs.length,
-                        physics: const ClampingScrollPhysics(),
-                        itemBuilder: (context, index) {
-                          DocumentSnapshot appdata =
-                              appointmentsnapshot.data!.docs[index];
+                    if (appointmentsnapshot.data!.docs.isEmpty) {
+                      return const Center(
+                        child: Text('No Appointments'),
+                      );
+                    }
+                    return Expanded(
+                      child: ListView.builder(
+                          itemCount: appointmentsnapshot.data!.docs.length,
+                          itemBuilder: (context, index) {
+                            DocumentSnapshot appdata =
+                                appointmentsnapshot.data!.docs[index];
 
-                          return StreamBuilder<QuerySnapshot>(
-                              stream: firebaseFirestore
-                                  .collection('users')
-                                  .where('uid', isEqualTo: appdata['uid'])
-                                  .snapshots(),
-                              builder: (context, snapshot) {
-                                if (!snapshot.hasData) {
-                                  return const Center(
-                                    child: CircularProgressIndicator(),
-                                  );
-                                }
-                                DocumentSnapshot data = snapshot.data!.docs[0];
-                                final date =
-                                    DateTime.fromMillisecondsSinceEpoch(
-                                        appdata['date']);
-                                final todaysdate = DateTime.now();
+                            return StreamBuilder<QuerySnapshot>(
+                                stream: firebaseFirestore
+                                    .collection('users')
+                                    .where('uid', isEqualTo: appdata['uid'])
+                                    .snapshots(),
+                                builder: (context, snapshot) {
+                                  if (!snapshot.hasData) {
+                                    return const Center(
+                                      child: CircularProgressIndicator(),
+                                    );
+                                  }
+                                  DocumentSnapshot data =
+                                      snapshot.data!.docs[0];
+                                  final date =
+                                      DateTime.fromMillisecondsSinceEpoch(
+                                          appdata['date']);
+                                  final todaysdate = DateTime.now();
 
-                                return Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: ListTile(
-                                      onLongPress: () async {
-                                        showDialog(
+                                  return Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: ListTile(
+                                        onLongPress: () async {
+                                          showDialog(
+                                              context: context,
+                                              builder: (context) {
+                                                return AlertDialog(
+                                                  shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              12.0)), //this right here
+
+                                                  actions: [
+                                                    ElevatedButton(
+                                                        onPressed: () {
+                                                          Navigator.of(context)
+                                                              .pop();
+                                                        },
+                                                        child:
+                                                            const Text('No')),
+                                                    ElevatedButton(
+                                                        onPressed: () async {
+                                                          Navigator.of(context)
+                                                              .pop();
+                                                          await FirebaseFirestore
+                                                              .instance
+                                                              .collection(
+                                                                  'pusers')
+                                                              .doc(FirebaseAuth
+                                                                  .instance
+                                                                  .currentUser!
+                                                                  .uid)
+                                                              .collection(
+                                                                  'appointments')
+                                                              .doc(appdata.id)
+                                                              .delete();
+                                                          await FirebaseFirestore
+                                                              .instance
+                                                              .collection(
+                                                                  'users')
+                                                              .doc(data['uid'])
+                                                              .collection(
+                                                                  'appointments')
+                                                              .doc(appdata.id)
+                                                              .delete();
+                                                          DocumentSnapshot<
+                                                                  Map<String,
+                                                                      dynamic>>
+                                                              timingdata =
+                                                              await firebaseFirestore
+                                                                  .collection(
+                                                                      'users')
+                                                                  .doc(data[
+                                                                      'uid'])
+                                                                  .collection(
+                                                                      'timing')
+                                                                  .doc(appdata[
+                                                                      'hospital'])
+                                                                  .get();
+                                                          DocumentSnapshot<
+                                                                  Map<String,
+                                                                      dynamic>>
+                                                              userdata =
+                                                              await firebaseFirestore
+                                                                  .collection(
+                                                                      'pusers')
+                                                                  .doc(_auth
+                                                                      .currentUser!
+                                                                      .uid)
+                                                                  .get();
+                                                          await FirebaseFirestore
+                                                              .instance
+                                                              .collection(
+                                                                  'pusers')
+                                                              .doc(FirebaseAuth
+                                                                  .instance
+                                                                  .currentUser!
+                                                                  .uid)
+                                                              .update({
+                                                            'Wallet': userdata[
+                                                                    'Wallet'] +
+                                                                num.parse(
+                                                                    timingdata[
+                                                                        'fee'])
+                                                          });
+                                                          print(data['Wallet'] +
+                                                              num.parse(
+                                                                  timingdata[
+                                                                      'fee']));
+                                                        },
+                                                        child:
+                                                            const Text('Yes'))
+                                                  ],
+                                                  content: const Text(
+                                                      'Appointment when cancelled will be refunded to wallet'),
+                                                  title: Text(
+                                                      'Do you want to confirm Cancel Appointment of ${data['name']}'),
+                                                );
+                                              });
+                                        },
+                                        onTap: () => nextPage(
                                             context: context,
-                                            builder: (context) {
-                                              return AlertDialog(
-                                                shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            12.0)), //this right here
-
-                                                actions: [
-                                                  ElevatedButton(
-                                                      onPressed: () {},
-                                                      child: const Text('No')),
-                                                  ElevatedButton(
-                                                      onPressed: () async {
-                                                        Navigator.of(context)
-                                                            .pop();
-                                                        await FirebaseFirestore
-                                                            .instance
-                                                            .collection(
-                                                                'pusers')
-                                                            .doc(FirebaseAuth
-                                                                .instance
-                                                                .currentUser!
-                                                                .uid)
-                                                            .collection(
-                                                                'appointments')
-                                                            .doc(appdata.id)
-                                                            .delete();
-                                                        await FirebaseFirestore
-                                                            .instance
-                                                            .collection('users')
-                                                            .doc(data['uid'])
-                                                            .collection(
-                                                                'appointments')
-                                                            .doc(appdata.id)
-                                                            .delete();
-                                                      },
-                                                      child: const Text('Yes'))
-                                                ],
-                                                title: const Text(
-                                                    'Do you want to confirm delete'),
-                                              );
-                                            });
-                                      },
-                                      onTap: () => nextPage(
-                                          context: context,
-                                          page: StatusAppointmentWidget(
-                                            data: data,
-                                            appdata: appdata,
-                                          )),
-                                      shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(20)),
-                                      tileColor: whiteColor,
-                                      leading: CircleAvatar(
-                                        backgroundImage:
-                                            NetworkImage(data['image']),
-                                      ),
-                                      title: Text(
-                                        data['name'],
-                                      ),
-                                      subtitle: Text(
-                                          "${data['category']}\n ${appdata['hospital']}"),
-                                      trailing: Wrap(
-                                        crossAxisAlignment:
-                                            WrapCrossAlignment.center,
-                                        children: [
-                                          Container(
-                                            decoration: BoxDecoration(
-                                                color: primary,
-                                                borderRadius:
-                                                    BorderRadius.circular(20)),
-                                            child: Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 20,
-                                                      vertical: 4),
-                                              child: Text(
-                                                date.day == todaysdate.day
-                                                    ? "Today"
-                                                    : "${date.day.toString().padLeft(2, "0")} ${months[date.month - 1]}",
-                                                style: const TextStyle(
-                                                    color: whiteColor),
-                                              ),
-                                            ),
-                                          ),
-                                          gwidth_10,
-                                          CircleAvatar(
-                                            child: Padding(
-                                              padding:
-                                                  const EdgeInsets.all(3.0),
-                                              child: CircleAvatar(
-                                                backgroundColor: background,
+                                            page: StatusAppointmentWidget(
+                                              data: data,
+                                              appdata: appdata,
+                                            )),
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(20)),
+                                        tileColor: whiteColor,
+                                        leading: CircleAvatar(
+                                          backgroundImage:
+                                              NetworkImage(data['image']),
+                                        ),
+                                        title: Text(
+                                          data['name'],
+                                        ),
+                                        subtitle: Text(
+                                            "${data['category']}\n ${appdata['hospital']}"),
+                                        trailing: Wrap(
+                                          crossAxisAlignment:
+                                              WrapCrossAlignment.center,
+                                          children: [
+                                            Container(
+                                              decoration: BoxDecoration(
+                                                  color: primary,
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          20)),
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 20,
+                                                        vertical: 4),
                                                 child: Text(
-                                                  appdata['token'].toString(),
-                                                  style: TextStyle(
-                                                      color: primary,
-                                                      fontWeight:
-                                                          FontWeight.w900),
+                                                  date.day == todaysdate.day
+                                                      ? "Today"
+                                                      : "${date.day.toString().padLeft(2, "0")} ${months[date.month - 1]}",
+                                                  style: const TextStyle(
+                                                      color: whiteColor),
                                                 ),
                                               ),
                                             ),
-                                          ),
-                                        ],
-                                      )),
-                                );
-                              });
-                        });
+                                            gwidth_10,
+                                            CircleAvatar(
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.all(3.0),
+                                                child: CircleAvatar(
+                                                  backgroundColor: background,
+                                                  child: Text(
+                                                    appdata['token'].toString(),
+                                                    style: TextStyle(
+                                                        color: primary,
+                                                        fontWeight:
+                                                            FontWeight.w900),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        )),
+                                  );
+                                });
+                          }),
+                    );
                   }),
             ],
           ),

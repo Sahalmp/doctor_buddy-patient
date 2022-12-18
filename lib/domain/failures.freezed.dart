@@ -306,7 +306,7 @@ abstract class FirebaseException implements MainFailure {
   factory FirebaseException({required final FirebaseException err}) =
       _$FirebaseException;
 
-  FirebaseException get err => throw _privateConstructorUsedError;
+  FirebaseException get err;
   @JsonKey(ignore: true)
   _$$FirebaseExceptionCopyWith<_$FirebaseException> get copyWith =>
       throw _privateConstructorUsedError;

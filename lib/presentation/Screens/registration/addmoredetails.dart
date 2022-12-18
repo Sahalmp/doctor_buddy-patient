@@ -70,6 +70,8 @@ class AddMoreDetails extends StatelessWidget {
                 )),
             gheight_30,
             CSCPicker(
+              defaultCountry: DefaultCountry.India,
+              disableCountry: true,
               onCountryChanged: (value) {
                 countryValue = value;
               },
@@ -134,6 +136,10 @@ class AddMoreDetails extends StatelessWidget {
         .collection('pusers')
         .doc(user.uid)
         .set(userModel.toMap());
+    await firebaseFirestore
+        .collection('pusers')
+        .doc(user.uid)
+        .update({'Wallet': 0});
     nextPage(context: context, page: MainScreen());
   }
 }

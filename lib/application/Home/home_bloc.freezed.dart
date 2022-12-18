@@ -359,7 +359,7 @@ abstract class Getbottomnavbarpage implements HomeEvent {
   const factory Getbottomnavbarpage({required final int index}) =
       _$Getbottomnavbarpage;
 
-  int get index => throw _privateConstructorUsedError;
+  int get index;
   @JsonKey(ignore: true)
   _$$GetbottomnavbarpageCopyWith<_$Getbottomnavbarpage> get copyWith =>
       throw _privateConstructorUsedError;
@@ -511,7 +511,7 @@ class _$Gettimerseconds implements Gettimerseconds {
 abstract class Gettimerseconds implements HomeEvent {
   const factory Gettimerseconds({required final int sec}) = _$Gettimerseconds;
 
-  int get sec => throw _privateConstructorUsedError;
+  int get sec;
   @JsonKey(ignore: true)
   _$$GettimersecondsCopyWith<_$Gettimerseconds> get copyWith =>
       throw _privateConstructorUsedError;
@@ -664,7 +664,7 @@ abstract class Getenabledtimer implements HomeEvent {
   const factory Getenabledtimer({required final bool enabled}) =
       _$Getenabledtimer;
 
-  bool get enabled => throw _privateConstructorUsedError;
+  bool get enabled;
   @JsonKey(ignore: true)
   _$$GetenabledtimerCopyWith<_$Getenabledtimer> get copyWith =>
       throw _privateConstructorUsedError;
@@ -815,7 +815,7 @@ class _$Getloading implements Getloading {
 abstract class Getloading implements HomeEvent {
   const factory Getloading({required final bool loading}) = _$Getloading;
 
-  bool get loading => throw _privateConstructorUsedError;
+  bool get loading;
   @JsonKey(ignore: true)
   _$$GetloadingCopyWith<_$Getloading> get copyWith =>
       throw _privateConstructorUsedError;
@@ -979,13 +979,13 @@ abstract class _HomeState implements HomeState {
       required final bool loading}) = _$_HomeState;
 
   @override
-  int get index => throw _privateConstructorUsedError;
+  int get index;
   @override
-  int get sec => throw _privateConstructorUsedError;
+  int get sec;
   @override
-  bool get enabled => throw _privateConstructorUsedError;
+  bool get enabled;
   @override
-  bool get loading => throw _privateConstructorUsedError;
+  bool get loading;
   @override
   @JsonKey(ignore: true)
   _$$_HomeStateCopyWith<_$_HomeState> get copyWith =>

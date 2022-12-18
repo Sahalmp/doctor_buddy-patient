@@ -26,5 +26,6 @@ class DataBloc extends Bloc<DataEvent, DataState> {
               isLoading: true, datafetchstate: Some(right(r)), userModel: r));
       emit(_state);
     });
+    
   }
 }

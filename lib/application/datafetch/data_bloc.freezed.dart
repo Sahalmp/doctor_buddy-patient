@@ -425,12 +425,11 @@ abstract class _DataState implements DataState {
           datafetchstate}) = _$_DataState;
 
   @override
-  bool get isLoading => throw _privateConstructorUsedError;
+  bool get isLoading;
   @override
-  PUserModel? get userModel => throw _privateConstructorUsedError;
+  PUserModel? get userModel;
   @override
-  Option<Either<MainFailure, PUserModel>> get datafetchstate =>
-      throw _privateConstructorUsedError;
+  Option<Either<MainFailure, PUserModel>> get datafetchstate;
   @override
   @JsonKey(ignore: true)
   _$$_DataStateCopyWith<_$_DataState> get copyWith =>

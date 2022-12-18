@@ -1,23 +1,24 @@
+import 'dart:io';
+import 'dart:math';
+
+import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:date_picker_timeline/date_picker_timeline.dart';
-import 'package:doctorbuddy/domain/appointment/appointment.dart';
 import 'package:doctorbuddy/domain/colors.dart';
 import 'package:doctorbuddy/domain/constants.dart';
 import 'package:doctorbuddy/presentation/Screens/Login/loginscreen.dart';
 import 'package:doctorbuddy/presentation/Screens/MoreScreen/Appointments/payment.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../application/details/details_bloc.dart';
-import '../../../widgets/navigation/nextpage.dart';
 
 String hospitalvalue = '';
 
 class BookAppointmentWidget extends StatelessWidget {
-  BookAppointmentWidget({Key? key, required this.index}) : super(key: key);
-  final int index;
+  BookAppointmentWidget({Key? key, required this.uid}) : super(key: key);
+  final String uid;
   final TextEditingController remarkcontroler = TextEditingController();
   DateTime _selectedValue =
       DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
@@ -36,6 +37,7 @@ class BookAppointmentWidget extends StatelessWidget {
     'Dec'
   ];
   String? timing;
+  String appfee = '';
 
   @override
   Widget build(BuildContext context) {
@@ -51,15 +53,18 @@ class BookAppointmentWidget extends StatelessWidget {
         foregroundColor: primary,
         backgroundColor: background,
       ),
-      body: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection('users').snapshots(),
+      body: StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(uid)
+              .snapshots(),
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
               return const Center(
                 child: CircularProgressIndicator(),
               );
             }
-            DocumentSnapshot doc = snapshot.data!.docs[index];
+            DocumentSnapshot doc = snapshot.data!;
             return ListView(children: [
               gheight_30,
               Row(
@@ -109,21 +114,23 @@ class BookAppointmentWidget extends StatelessWidget {
                         child: CircularProgressIndicator(),
                       );
                     }
-                    return Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(15.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Available',
-                                style: TextStyle(
-                                    color: primary,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold),
-                              ),
-                              ListView.builder(
+                    return BlocBuilder<DetailsBloc, DetailsState>(
+                        builder: (context, state) {
+                      return Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(15.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Available',
+                                  style: TextStyle(
+                                      color: primary,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                ListView.builder(
                                   itemCount: snapshot.data!.docs.length,
                                   shrinkWrap: true,
                                   physics: const ClampingScrollPhysics(),
@@ -135,94 +142,114 @@ class BookAppointmentWidget extends StatelessWidget {
                                     }
                                     DocumentSnapshot ds =
                                         snapshot.data!.docs[index];
-                                    timing = "${ds['start']} to ${ds['end']}";
-
-                                    return BlocBuilder<DetailsBloc,
-                                        DetailsState>(
-                                      builder: (context, state) {
-                                        return ListTile(
-                                            leading: Radio<String>(
-                                                value: ds['hospital'],
-                                                groupValue: state.hospital,
-                                                onChanged: (value) {
-                                                  hospitalvalue =
-                                                      value.toString();
-                                                  context
-                                                      .read<DetailsBloc>()
-                                                      .add(Gethospital(
-                                                          hospital: value));
-                                                }),
-                                            title: Row(children: [
-                                              const Icon(
-                                                  Icons.local_hospital_sharp),
-                                              gwidth_10,
-                                              Text(
-                                                ds['hospital'],
-                                                style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    color: primary,
-                                                    fontSize: 18),
-                                              ),
-                                            ]),
-                                            subtitle: Text(
-                                                "${ds['start']} to ${ds['end']}"));
-                                      },
-                                    );
-                                  }),
-                              gheight_10,
-                              gheight_20,
-                              const Text(
-                                'Select Date',
-                                style: TextStyle(
-                                    color: primary,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: <Widget>[
-                            Container(
-                              child: DatePicker(DateTime.now(),
-                                  width: 80,
-                                  initialSelectedDate: DateTime.now(),
-                                  selectionColor: Colors.black,
-                                  daysCount: 7,
-                                  inactiveDates: [],
-                                  selectedTextColor: Colors.white,
-                                  onDateChange: (date) {
-                                // New date selected
-                                _selectedValue = date;
-                                print(_selectedValue.minute);
-                              }),
-                            ),
-                          ],
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(15.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Remarks',
-                                style: TextStyle(color: primary),
-                              ),
-                              TextFormField(
-                                controller: remarkcontroler,
-                                decoration: const InputDecoration(
-                                  filled: true,
-                                  fillColor: Colors.white,
-                                  border: OutlineInputBorder(),
+                                    appfee = ds['fee'];
+                                    // timing = "${ds['start']} to ${ds['end']}";
+                                    List<DateTime> dlist = [];
+                                    return ListTile(
+                                        leading: Radio<String>(
+                                            value: ds['hospital'],
+                                            groupValue: state.hospital,
+                                            onChanged: (value) {
+                                              timing =
+                                                  "${ds['start']} to ${ds['end']}";
+                                              context.read<DetailsBloc>().add(
+                                                  GetDoctorDate(
+                                                      disabledate: dlist));
+                                              hospitalvalue = value.toString();
+                                              context.read<DetailsBloc>().add(
+                                                  Gethospital(hospital: value));
+                                              if (ds['leave'] != null) {
+                                                List leave = ds['leave'];
+                                                print(leave);
+                                                List<DateTime> dval =
+                                                    leave.map<DateTime>((e) {
+                                                  print(e.toDate());
+                                                  return e.toDate();
+                                                }).toList();
+                                                context.read<DetailsBloc>().add(
+                                                    GetDoctorDate(
+                                                        disabledate: dval));
+                                              }
+                                            }),
+                                        title: Row(children: [
+                                          const Icon(
+                                              Icons.local_hospital_sharp),
+                                          gwidth_10,
+                                          Text(
+                                            ds['hospital'],
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: primary,
+                                                fontSize: 18),
+                                          ),
+                                        ]),
+                                        trailing: Text("₹${ds['fee']}"),
+                                        subtitle: Text(
+                                            "${ds['start']} to ${ds['end']}"));
+                                  },
                                 ),
-                                maxLines: 5,
-                              )
-                            ],
+                                gheight_10,
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    );
+                          state.hospital != ''
+                              ? Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: <Widget>[
+                                    Padding(
+                                      padding: const EdgeInsets.all(16.0),
+                                      child: Row(
+                                        children: const [
+                                          Text(
+                                            'Select Date',
+                                            style: TextStyle(
+                                                color: primary,
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    DatePicker(DateTime.now(),
+                                        width: 80,
+                                        initialSelectedDate: null,
+                                        selectionColor: Colors.black,
+                                        daysCount: 7,
+                                        inactiveDates: state.disabledate,
+                                        selectedTextColor: Colors.white,
+                                        onDateChange: (date) {
+                                      print(state.disabledate);
+                                      // New date selected
+
+                                      _selectedValue = date;
+                                    }),
+                                  ],
+                                )
+                              : SizedBox(),
+                          Padding(
+                            padding: const EdgeInsets.all(15.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Remarks',
+                                  style: TextStyle(color: primary),
+                                ),
+                                TextFormField(
+                                  controller: remarkcontroler,
+                                  decoration: const InputDecoration(
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  maxLines: 5,
+                                )
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    });
                   }),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -245,6 +272,7 @@ class BookAppointmentWidget extends StatelessWidget {
                                 )
                                 .where('hospital', isEqualTo: hospitalvalue)
                                 .get();
+
                         print("+++++++++${doc['uid']}");
                         for (var element in result.docs) {
                           if (element['uid'] == auth.currentUser!.uid &&
@@ -260,8 +288,18 @@ class BookAppointmentWidget extends StatelessWidget {
                             return;
                           }
                         }
-                        await ConfirmBottomsheet(context, doc, timing, result,
-                            firebaseFirestore, remarkcontroler.text.trim());
+                        context.read<DetailsBloc>().add(
+                              GetWallet(wallet: false),
+                            );
+
+                        await ConfirmBottomsheet(
+                            appfee,
+                            context,
+                            doc,
+                            timing,
+                            result,
+                            firebaseFirestore,
+                            remarkcontroler.text.trim());
                         // nextPage(context: context, page: RazorpayScreen());
                       },
                       child: const Padding(
@@ -278,12 +316,15 @@ class BookAppointmentWidget extends StatelessWidget {
   }
 
   Future ConfirmBottomsheet(
+      String appfee,
       BuildContext context,
       DocumentSnapshot<Object?> doc,
       String? timing,
       QuerySnapshot<Map<String, dynamic>> result,
       FirebaseFirestore firebaseFirestore,
       String remark) async {
+    var walletmoney = 0;
+    context.read<DetailsBloc>().add(Gettotalamount(amount: appfee));
     showModalBottomSheet(
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(
@@ -292,8 +333,10 @@ class BookAppointmentWidget extends StatelessWidget {
         ),
         context: context,
         builder: (context) {
+          var totalfee = appfee;
+          context.read<DetailsBloc>().add(Gettotalamount(amount: appfee));
           return SizedBox(
-              height: MediaQuery.of(context).size.height * 0.45,
+              height: MediaQuery.of(context).size.height * 0.48,
               child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -302,7 +345,7 @@ class BookAppointmentWidget extends StatelessWidget {
                       children: [
                         Container(
                           width: double.infinity,
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                               color: primary,
                               borderRadius: BorderRadius.vertical(
                                   top: Radius.circular(30))),
@@ -337,7 +380,7 @@ class BookAppointmentWidget extends StatelessWidget {
                           ],
                         ),
                         ListTile(
-                          leading: Icon(Icons.domain_add_outlined),
+                          leading: const Icon(Icons.domain_add_outlined),
                           title: Text(
                             hospitalvalue,
                           ),
@@ -374,21 +417,102 @@ class BookAppointmentWidget extends StatelessWidget {
                             child: Padding(
                               padding: const EdgeInsets.all(8.0),
                               child: Text("Reason: $remark"),
-                            ))
+                            )),
+                        BlocBuilder<DetailsBloc, DetailsState>(
+                          builder: (context, state) {
+                            return StreamBuilder<DocumentSnapshot>(
+                                stream: FirebaseFirestore.instance
+                                    .collection('pusers')
+                                    .doc(auth.currentUser!.uid)
+                                    .snapshots(),
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState ==
+                                      ConnectionState.waiting) {
+                                    return const Center(
+                                      child: CircularProgressIndicator(),
+                                    );
+                                  }
+                                  walletmoney = snapshot.data!['Wallet'];
+
+                                  return ListTile(
+                                      textColor: Colors.grey,
+                                      leading: Checkbox(
+                                        checkColor: whiteColor,
+                                        fillColor:
+                                            MaterialStateProperty.all<Color>(
+                                                walletmoney > 0
+                                                    ? Colors.black
+                                                    : Colors.grey),
+                                        value: walletmoney > 0
+                                            ? state.wallet
+                                            : false,
+                                        onChanged: walletmoney > 0
+                                            ? (bool? value) {
+                                                context.read<DetailsBloc>().add(
+                                                    GetWallet(wallet: value!));
+                                                if (!state.wallet) {
+                                                  totalfee =
+                                                      (num.parse(appfee) -
+                                                              walletmoney)
+                                                          .toString();
+                                                  context
+                                                      .read<DetailsBloc>()
+                                                      .add(Gettotalamount(
+                                                          amount: totalfee));
+                                                } else {
+                                                  totalfee = appfee;
+
+                                                  context
+                                                      .read<DetailsBloc>()
+                                                      .add(Gettotalamount(
+                                                          amount: totalfee));
+                                                }
+                                              }
+                                            : null,
+                                      ),
+                                      title: Row(children: [
+                                        const Icon(Icons.local_hospital_sharp),
+                                        gwidth_10,
+                                        Text(
+                                          'Wallet',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: walletmoney > 0
+                                                  ? primary
+                                                  : Colors.grey,
+                                              fontSize: 18),
+                                        ),
+                                      ]),
+                                      trailing: Text(double.parse(snapshot
+                                              .data!['Wallet']
+                                              .toString())
+                                          .toString()));
+                                });
+                          },
+                        )
                       ],
                     ),
+
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10.0),
                       child: Row(
                         children: [
                           Expanded(
-                            child: Paymentwidget(
-                              reason: remark,
-                              timing: timing!,
-                              selectedValue: _selectedValue,
-                              doc: doc,
-                            ),
-                          ),
+                            child: BlocBuilder<DetailsBloc, DetailsState>(
+                                builder: (context, state) {
+                              print(
+                                  "${state.wallet}------------------------------");
+                              return Paymentwidget(
+                                wallet: state.wallet,
+                                wmoney: walletmoney,
+                                appfee: appfee,
+                                reason: remark,
+                                timing: timing!,
+                                selectedValue: _selectedValue,
+                                doc: doc,
+                              );
+                            }),
+                          )
                         ],
                       ),
                     )

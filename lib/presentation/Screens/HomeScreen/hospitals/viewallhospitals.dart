@@ -3,7 +3,6 @@ import 'package:doctorbuddy/domain/constants.dart';
 import 'package:doctorbuddy/presentation/Screens/HomeScreen/home_screen.dart';
 import 'package:flutter/material.dart';
 
-
 import '../../../../domain/colors.dart';
 
 class ViewallHospitals extends StatelessWidget {
@@ -31,17 +30,17 @@ class ViewallHospitals extends StatelessWidget {
                   .snapshots(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
-                  return Center(
+                  return const Center(
                     child: CircularProgressIndicator(),
                   );
                 }
                 return ListView.builder(
                     shrinkWrap: true,
-                    physics: ClampingScrollPhysics(),
+                    physics: const ClampingScrollPhysics(),
                     itemCount: snapshot.data!.docs.length,
                     itemBuilder: (context, index) {
                       if (!snapshot.hasData) {
-                        return Center(
+                        return const Center(
                           child: CircularProgressIndicator(),
                         );
                       }
@@ -49,7 +48,7 @@ class ViewallHospitals extends StatelessWidget {
 
                       return Padding(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 20.0, vertical: 5),
+                            horizontal: 20.0, vertical: 2),
                         child: HospitalListTile(
                           hsptlname: "${ds['name']}",
                         ),

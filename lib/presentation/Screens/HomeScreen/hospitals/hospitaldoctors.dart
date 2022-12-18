@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:doctorbuddy/domain/colors.dart';
 import 'package:doctorbuddy/presentation/Screens/HomeScreen/home_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -11,6 +12,7 @@ class ViewHospitalDoctors extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: primary,
         title: Text(hospitalname),
       ),
       body: StreamBuilder<QuerySnapshot>(
@@ -24,7 +26,7 @@ class ViewHospitalDoctors extends StatelessWidget {
                   for (int i = 0; i < hospitals.length; i++) {
                     if (hospitalname == ds['hospital'][i]['name']) {
                       return DoctorListTile(
-                          index: index,
+                          uid: ds['uid'],
                           drname: ds['name'],
                           drimgurl: ds['image'],
                           category: ds['category']);

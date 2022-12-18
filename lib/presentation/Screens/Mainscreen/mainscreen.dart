@@ -1,24 +1,56 @@
+import 'dart:convert';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:doctorbuddy/application/datafetch/data_bloc.dart';
 import 'package:doctorbuddy/domain/colors.dart';
-import 'package:doctorbuddy/domain/di/di.dart';
 import 'package:doctorbuddy/presentation/Screens/MoreScreen/morescreen.dart';
 import 'package:doctorbuddy/presentation/Screens/MyConsults/myconsults.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:http/http.dart' as http;
 
 import '../../../application/Home/home_bloc.dart';
+import '../../../infastructure/datafetch/notification.dart';
 import '../HomeScreen/home_screen.dart';
 
-class MainScreen extends StatelessWidget {
+class MainScreen extends StatefulWidget {
   MainScreen({Key? key}) : super(key: key);
+
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  @override
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    FirebaseMessaging.instance.getInitialMessage();
+    FirebaseMessaging.onMessage.listen((event) {
+      LocalNotificationService.display(event);
+    });
+    storeNotificationToken();
+
+  }
 
   final List<Widget> pages = <Widget>[
     const MyConsultsScreen(),
     HomeScreen(),
     const MoreScreen()
   ];
+
+  storeNotificationToken() async {
+    String? token = await FirebaseMessaging.instance.getToken();
+    print('$token');
+    FirebaseFirestore.instance
+        .collection('pusers')
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .set({'token': token}, SetOptions(merge: true));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +97,7 @@ class MainScreen extends StatelessWidget {
                     onTap: (value) {
                       BlocProvider.of<HomeBloc>(context)
                           .add(Getbottomnavbarpage(index: value));
+                     
                     },
                   ),
                 ),

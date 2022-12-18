@@ -1,6 +1,10 @@
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:doctorbuddy/application/datafetch/data_bloc.dart';
+import 'package:doctorbuddy/presentation/Screens/Login/loginscreen.dart';
+import 'package:doctorbuddy/presentation/widgets/navigation/backbutton.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
@@ -16,13 +20,18 @@ class EditProfileScreen extends StatelessWidget {
   final TextEditingController _dobController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final ImagePicker _imagePicker = ImagePicker();
+  String image = "";
+  String dropdownValue = '';
+
   @override
   Widget build(BuildContext context) {
+    BlocProvider.of<DetailsBloc>(context).add(Getimage(image: null));
+
     BlocProvider.of<DataBloc>(context).add(Getdata());
 
     final Size devSize = MediaQuery.of(context).size;
     DateTime selectedDate = DateTime.now();
-    String image = "";
+    String? imageprofile;
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
@@ -36,23 +45,29 @@ class EditProfileScreen extends StatelessWidget {
           BlocBuilder<DataBloc, DataState>(
             builder: (context, state) {
               String dropdownValue = state.userModel!.bloodgroup!;
+              imageprofile = state.userModel!.image;
 
               _nameController.text = state.userModel!.name!;
               _dobController.text = state.userModel!.dob!;
               return Column(
                 children: [
                   gheight_20,
-                  
                   BlocBuilder<DetailsBloc, DetailsState>(
                     builder: (context, state) {
                       return Stack(
                         children: [
-                          state.image != null
-                              ? CircleAvatar(
-                                  radius: 60,
-                                  backgroundColor: Colors.blueGrey.shade100,
-                                  child: const Icon(Icons.person),
-                                )
+                          state.image == null
+                              ? imageprofile != null
+                                  ? CircleAvatar(
+                                      radius: 60,
+                                      backgroundImage:
+                                          NetworkImage(imageprofile!),
+                                    )
+                                  : CircleAvatar(
+                                      radius: 60,
+                                      backgroundColor: Colors.blueGrey.shade100,
+                                      child: const Icon(Icons.person),
+                                    )
                               : CircleAvatar(
                                   radius: 60,
                                   backgroundImage:
@@ -254,15 +269,44 @@ class EditProfileScreen extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: 8, left: 20, right: 20),
         child: Row(
           children: [
-            Expanded(
-                child: ElevatedButton(
-              onPressed: () {
-                if (formKey.currentState!.validate()) {}
+            Expanded(child: BlocBuilder<DetailsBloc, DetailsState>(
+              builder: (context, state) {
+                return ElevatedButton(
+                  onPressed: () async {
+                    
+                    if (formKey.currentState!.validate()) {
+                      print('++++++++++++++++++++');
+
+                      String? imgurl;
+                      if (state.image != null) {
+                        String imagename =
+                            DateTime.now().millisecondsSinceEpoch.toString();
+                        TaskSnapshot uploadTask = await FirebaseStorage.instance
+                            .ref('patients/$imagename')
+                            .putFile(File(image));
+                        imgurl = await uploadTask.ref.getDownloadURL();
+                      } else {
+                        imgurl = imageprofile!;
+                      }
+                      print(imgurl);
+                      await FirebaseFirestore.instance
+                          .collection('pusers')
+                          .doc(auth.currentUser!.uid)
+                          .update({
+                        'name': _nameController.text,
+                        'gender': gender,
+                        'dob': _dobController.text,
+                        'bloodgroup': dropdownValue,
+                        'image': imgurl
+                      });
+                    }
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 15.0),
+                    child: Text('Save'),
+                  ),
+                );
               },
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 15.0),
-                child: Text('Save'),
-              ),
             )),
           ],
         ),
